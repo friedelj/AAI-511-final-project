@@ -1,0 +1,50 @@
+import os
+import shutil
+from itertools import cycle
+
+# Define the root directory
+root_dir = 'midifiles'
+
+# Function to get a new file name if the target already exists
+def get_unique_file_name(target_folder, file_name):
+    base_name, extension = os.path.splitext(file_name)
+    counter = 1
+    new_file_name = file_name
+    while os.path.exists(os.path.join(target_folder, new_file_name)):
+        new_file_name = f"{base_name}_{counter}{extension}"
+        counter += 1
+    return new_file_name
+
+# Function to balance files within a composer's folder
+def balance_files_in_folder(composer_folder):
+    midi_files = []
+    subfolders = []
+
+    for subdir, dirs, files in os.walk(composer_folder):
+        for file in files:
+            if file.lower().endswith('.mid'):  # Check if the file is a MIDI file
+                midi_files.append(os.path.join(subdir, file))
+        for d in dirs:
+            subfolders.append(os.path.join(composer_folder, d))
+        break  # Only need the first level subdirectories
+
+    # Remove any empty subfolders from the list
+    subfolders = [folder for folder in subfolders if os.listdir(folder)]
+
+    # Distribute MIDI files evenly among the subfolders
+    if subfolders:
+        subfolder_cycle = cycle(subfolders)
+        for midi_file in midi_files:
+            target_subfolder = next(subfolder_cycle)
+            file_name = os.path.basename(midi_file)
+            unique_file_name = get_unique_file_name(target_subfolder, file_name)
+            shutil.move(midi_file, os.path.join(target_subfolder, unique_file_name))
+
+# Process each composer's folder
+for composer in os.listdir(root_dir):
+    composer_folder = os.path.join(root_dir, composer)
+    if os.path.isdir(composer_folder):
+        balance_files_in_folder(composer_folder)
+
+print("MIDI files have been balanced within each composer's subfolders.")
+     
